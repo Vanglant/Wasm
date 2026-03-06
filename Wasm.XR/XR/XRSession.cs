@@ -1,13 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.JSInterop;
-using nkast.Wasm.Canvas.WebGL;
+﻿using nkast.Wasm.Canvas.WebGL;
 using nkast.Wasm.JSInterop;
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices.JavaScript;
+using System.Threading.Tasks;
+using JSObject = nkast.Wasm.JSInterop.JSObject;
 
 namespace nkast.Wasm.XR
 {
-    public class XRSession : CachedJSObject<XRSession>
+    public partial class XRSession : CachedJSObject<XRSession>
     {
 
         public event EventHandler<EventArgs> Ended;
@@ -56,7 +57,7 @@ namespace nkast.Wasm.XR
             Invoke("nkXRSession.RegisterEvents");
         }
 
-        [JSInvokable]
+        [JSExport]
         public static void JsXRSessionOnEnd(int uid)
         {
             XRSession xrSession = XRSession.FromUid(uid);
@@ -68,7 +69,7 @@ namespace nkast.Wasm.XR
                 handler(xrSession, EventArgs.Empty);
         }
 
-        [JSInvokable]
+        [JSExport]
         public static void JsXRSessionOnInputSourcesChanged(int uid)
         {
             XRSession xrSession = XRSession.FromUid(uid);
@@ -80,7 +81,7 @@ namespace nkast.Wasm.XR
                 handler(xrSession, InputSourcesChangedEventArgs.Empty);
         }
 
-        [JSInvokable]
+        [JSExport]
         public static void JsXRSessionOnAnimationFrame(int uid, int callbackId, double time, int xrFrameUid)
         {
             XRSession xrSession = XRSession.FromUid(uid);

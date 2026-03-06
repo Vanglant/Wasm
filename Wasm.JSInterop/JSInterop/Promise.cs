@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.JavaScript;
 using System.Threading.Tasks;
-using Microsoft.JSInterop;
 
 namespace nkast.Wasm.JSInterop
 {
-    public abstract class Promise : JSObject
+    public abstract partial class Promise : JSObject
     {
         private static readonly Dictionary<int, Promise> _uidMap = new Dictionary<int, Promise>();
 
@@ -15,7 +15,7 @@ namespace nkast.Wasm.JSInterop
             Invoke("nkPromise.RegisterEvents");
         }
 
-        [JSInvokable]
+        [JSExport]
         public static void JsPromiseOnCompleted(int uid)
         {
             Promise promise = _uidMap[uid];
@@ -25,7 +25,7 @@ namespace nkast.Wasm.JSInterop
 
         }
 
-        [JSInvokable]
+        [JSExport]
         public static void JsPromiseOnError(int uid)
         {
             Promise promise = _uidMap[uid];
@@ -112,7 +112,7 @@ namespace nkast.Wasm.JSInterop
 
     public class PromiseVoid : Promise
     {
-        protected  TaskCompletionSource _tcs;
+        protected TaskCompletionSource _tcs;
 
         public PromiseVoid(int uid) : base(uid)
         {
@@ -205,7 +205,7 @@ namespace nkast.Wasm.JSInterop
     {
         Func<int, JSObject> _objectFactory;
 
-        public PromiseJSObject(int uid, Func<int,JSObject> objectFactory) : base(uid)
+        public PromiseJSObject(int uid, Func<int, JSObject> objectFactory) : base(uid)
         {
             _objectFactory = objectFactory;
         }

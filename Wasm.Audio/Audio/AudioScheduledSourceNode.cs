@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.JSInterop;
-using nkast.Wasm.JSInterop;
+﻿using Microsoft.JSInterop;
+using System;
 
 namespace nkast.Wasm.Audio
 {
-    public class AudioScheduledSourceNode : AudioNode
+    public partial class AudioScheduledSourceNode : AudioNode
     {
         public event EventHandler OnEnded;
 

@@ -1,456 +1,453 @@
+using nkast.Wasm.WebStorage;
 using System;
 using System.Collections.Generic;
-using Microsoft.JSInterop;
-using nkast.Wasm.Input;
-using nkast.Wasm.JSInterop;
-using nkast.Wasm.WebStorage;
+using System.Runtime.InteropServices.JavaScript;
 
-namespace nkast.Wasm.Dom
+namespace nkast.Wasm.Dom;
+
+public partial class Window : JSInterop.JSObject
 {
-    public class Window : JSObject
+    static Window _current;
+    private Document _document;
+    private Navigator _navigator;
+    private Storage _sessionStorage;
+    private Storage _localStorage;
+
+    public delegate void AnimationFrameCallback(TimeSpan time);
+    public delegate void TimeoutCallback();
+    public delegate void IntervalCallback();
+
+    int _animationFrameCallbackId;
+    Dictionary<int, AnimationFrameCallback> _animationFrameCallbacks = new Dictionary<int, AnimationFrameCallback>();
+    Dictionary<int, int> _animationFrameRequestHandles = new Dictionary<int, int>();
+
+    int _timeoutCallbackId;
+    Dictionary<int, TimeoutCallback> _timeoutCallbacks = new Dictionary<int, TimeoutCallback>();
+    Dictionary<int, int> _timeoutHandles = new Dictionary<int, int>();
+
+    int _intervalCallbackId;
+    Dictionary<int, IntervalCallback> _intervalCallbacks = new Dictionary<int, IntervalCallback>();
+    Dictionary<int, int> _intervalHandles = new Dictionary<int, int>();
+
+    public delegate void OnResizeDelegate(object sender);
+    public delegate void OnMouseMoveDelegate(object sender, int x, int y);
+    public delegate void OnMouseDownDelegate(object sender, int x, int y, int buttons);
+    public delegate void OnMouseUpDelegate(object sender, int x, int y, int buttons);
+    public delegate void OnMouseWheelDelegate(object sender, int deltaX, int deltaY, int deltaZ, int deltaMode);
+    public delegate void OnKeyDownDelegate(object sender, char key, int keyCode, int location);
+    public delegate void OnKeyUpDelegate(object sender, char key, int keyCode, int location);
+
+    public delegate void OnTouchStartDelegate(object sender, float x, float y, int identifier);
+    public delegate void OnTouchMoveDelegate(object sender, float x, float y, int identifier);
+    public delegate void OnTouchEndDelegate(object sender, float x, float y, int identifier);
+    public delegate void OnTouchCancelDelegate(object sender);
+
+    public delegate void OnGamepadConnectedDelegate(object sender, int index);
+    public delegate void OnGamepadDisconnectedDelegate(object sender, int index);
+
+
+    public OnResizeDelegate OnResize;
+    public OnResizeDelegate OnFocus;
+    public OnResizeDelegate OnBlur;
+    public OnMouseMoveDelegate OnMouseMove;
+    public OnMouseDownDelegate OnMouseDown;
+    public OnMouseUpDelegate OnMouseUp;
+    public OnMouseWheelDelegate OnMouseWheel;
+    public OnKeyDownDelegate OnKeyDown;
+    public OnKeyUpDelegate OnKeyUp;
+
+    public OnTouchStartDelegate OnTouchStart;
+    public OnTouchMoveDelegate OnTouchMove;
+    public OnTouchEndDelegate OnTouchEnd;
+    public OnTouchCancelDelegate OnTouchCancel;
+
+    public OnGamepadConnectedDelegate OnGamepadConnected;
+    public OnGamepadDisconnectedDelegate OnGamepadDisconnected;
+
+    public static Window Current
     {
-        static Window _current;
-        private Document _document;
-        private Navigator _navigator;
-        private Storage _sessionStorage;
-        private Storage _localStorage;
-
-        public delegate void AnimationFrameCallback(TimeSpan time);
-        public delegate void TimeoutCallback();
-        public delegate void IntervalCallback();
-
-        int _animationFrameCallbackId;
-        Dictionary<int, AnimationFrameCallback> _animationFrameCallbacks = new Dictionary<int, AnimationFrameCallback>();
-        Dictionary<int, int> _animationFrameRequestHandles = new Dictionary<int, int>();
-
-        int _timeoutCallbackId;
-        Dictionary<int, TimeoutCallback> _timeoutCallbacks = new Dictionary<int, TimeoutCallback>();
-        Dictionary<int, int> _timeoutHandles = new Dictionary<int, int>();
-
-        int _intervalCallbackId;
-        Dictionary<int, IntervalCallback> _intervalCallbacks = new Dictionary<int, IntervalCallback>();
-        Dictionary<int, int> _intervalHandles = new Dictionary<int, int>();
-
-        public delegate void OnResizeDelegate(object sender);
-        public delegate void OnMouseMoveDelegate(object sender, int x, int y);
-        public delegate void OnMouseDownDelegate(object sender, int x, int y, int buttons);
-        public delegate void OnMouseUpDelegate(object sender, int x, int y, int buttons);
-        public delegate void OnMouseWheelDelegate(object sender, int deltaX, int deltaY, int deltaZ, int deltaMode);
-        public delegate void OnKeyDownDelegate(object sender, char key, int keyCode, int location);
-        public delegate void OnKeyUpDelegate(object sender, char key, int keyCode, int location);
-
-        public delegate void OnTouchStartDelegate(object sender, float x, float y, int identifier);
-        public delegate void OnTouchMoveDelegate(object sender, float x, float y, int identifier);
-        public delegate void OnTouchEndDelegate(object sender, float x, float y, int identifier);
-        public delegate void OnTouchCancelDelegate(object sender);
-
-        public delegate void OnGamepadConnectedDelegate(object sender, int index);
-        public delegate void OnGamepadDisconnectedDelegate(object sender, int index);
-
-
-        public OnResizeDelegate OnResize;
-        public OnResizeDelegate OnFocus;
-        public OnResizeDelegate OnBlur;
-        public OnMouseMoveDelegate OnMouseMove;
-        public OnMouseDownDelegate OnMouseDown;
-        public OnMouseUpDelegate OnMouseUp;
-        public OnMouseWheelDelegate OnMouseWheel;
-        public OnKeyDownDelegate OnKeyDown;
-        public OnKeyUpDelegate OnKeyUp;
-
-        public OnTouchStartDelegate OnTouchStart;
-        public OnTouchMoveDelegate OnTouchMove;
-        public OnTouchEndDelegate OnTouchEnd;
-        public OnTouchCancelDelegate OnTouchCancel;
-
-        public OnGamepadConnectedDelegate OnGamepadConnected;
-        public OnGamepadDisconnectedDelegate OnGamepadDisconnected;
-
-        public static Window Current
-        { 
-            get
+        get
+        {
+            if (_current == null)
             {
-                if (_current == null)
-                {
-                    int uid = JSObject.StaticInvokeRetInt("nkJSObject.GetWindow");
-                    _current = new Window(uid);
-                }
-
-                return _current;
+                int uid = StaticInvokeRetInt("nkJSObject.GetWindow");
+                _current = new Window(uid);
             }
-        }
 
-        public Document Document
-        {
-            get
-            {
-                if (_document == null)
-                {
-                    int uid = InvokeRetInt("nkWindow.GetDocument");
-                    _document = new Document(this, uid);
-                }
-
-                return _document;
-            }
-        }
-
-        public Navigator Navigator
-        {
-            get
-            {
-                if (_navigator == null)
-                {
-                    int uid = InvokeRetInt("nkWindow.GetNavigator");
-                    _navigator = new Navigator(this, uid);
-                }
-
-                return _navigator;
-            }
-        }
-
-        public int InnerWidth
-        {
-            get { return InvokeRetInt("nkWindow.GetInnerWidth"); }
-        }
-
-        public int InnerHeight
-        {
-            get { return InvokeRetInt("nkWindow.GetInnerHeight"); }
-        }
-        
-        public double DevicePixelRatio
-        {
-            get { return InvokeRetDouble("nkWindow.GetDevicePixelRatio"); }
-        }
-
-        public bool IsSecureContext
-        {
-            get { return InvokeRetBool("nkWindow.GetIsSecureContext"); }
-        }
-
-        public Storage SessionStorage
-        {
-            get
-            {
-                if (_sessionStorage == null)
-                {
-                    int uid = InvokeRetInt("nkWindow.GetSessionStorage");
-                    if (uid == -1)
-                        return null;
-                    _sessionStorage = new Storage(uid);
-                }
-
-                return _sessionStorage;
-            }
-        }
-        public Storage LocalStorage
-        {
-            get
-            {
-
-                if (_localStorage == null)
-                {
-                    int uid = InvokeRetInt("nkWindow.GetLocalStorage");
-                    if (uid == -1)
-                        return null;
-                    _localStorage = new Storage(uid);
-                }
-
-                return _localStorage;
-            }
-        }
-
-        private Window(int uid) : base(uid)
-        {
-            Invoke("nkWindow.RegisterEvents");
-        }
-        
-        private static Window WindowFromUid(int uid)
-        {
-            if (_current.Uid != uid)
-                throw new InvalidOperationException("Invalid uid");
             return _current;
         }
+    }
 
-        [JSInvokable]
-        public static void JsWindowOnAnimationFrame(int uid, int callbackId, double time)
+    public Document Document
+    {
+        get
         {
-            Window wnd = WindowFromUid(uid);
-            wnd.OnAnimationFrame(callbackId, TimeSpan.FromMilliseconds(time));
-        }
+            if (_document == null)
+            {
+                int uid = InvokeRetInt("nkWindow.GetDocument");
+                _document = new Document(this, uid);
+            }
 
-        private void OnAnimationFrame(int callbackId, TimeSpan time)
+            return _document;
+        }
+    }
+
+    public Navigator Navigator
+    {
+        get
         {
-            AnimationFrameCallback animationFrameCallback = _animationFrameCallbacks[callbackId];
-            _animationFrameCallbacks.Remove(callbackId);
-            _animationFrameRequestHandles.Remove(callbackId);
+            if (_navigator == null)
+            {
+                int uid = InvokeRetInt("nkWindow.GetNavigator");
+                _navigator = new Navigator(this, uid);
+            }
 
-            animationFrameCallback(time);
+            return _navigator;
         }
+    }
 
-        public int RequestAnimationFrame(AnimationFrameCallback animationFrameCallback)
+    public int InnerWidth
+    {
+        get { return InvokeRetInt("nkWindow.GetInnerWidth"); }
+    }
+
+    public int InnerHeight
+    {
+        get { return InvokeRetInt("nkWindow.GetInnerHeight"); }
+    }
+
+    public double DevicePixelRatio
+    {
+        get { return InvokeRetDouble("nkWindow.GetDevicePixelRatio"); }
+    }
+
+    public bool IsSecureContext
+    {
+        get { return InvokeRetBool("nkWindow.GetIsSecureContext"); }
+    }
+
+    public Storage SessionStorage
+    {
+        get
         {
-            unchecked { _animationFrameCallbackId++; }
-            int callbackId = _animationFrameCallbackId;
+            if (_sessionStorage == null)
+            {
+                int uid = InvokeRetInt("nkWindow.GetSessionStorage");
+                if (uid == -1)
+                    return null;
+                _sessionStorage = new Storage(uid);
+            }
 
-            int handle = InvokeRetInt<int>("nkWindow.RequestAnimationFrame", callbackId);
-
-            _animationFrameCallbacks.Add(callbackId, animationFrameCallback);
-            _animationFrameRequestHandles.Add(callbackId, handle);
-
-            return callbackId;
+            return _sessionStorage;
         }
-
-        public void CancelAnimationFrame(int requestID)
+    }
+    public Storage LocalStorage
+    {
+        get
         {
-            int callbackId = requestID;
-            requestID = _animationFrameRequestHandles[callbackId];
 
-            _animationFrameCallbacks.Remove(callbackId);
-            _animationFrameRequestHandles.Remove(callbackId);
+            if (_localStorage == null)
+            {
+                int uid = InvokeRetInt("nkWindow.GetLocalStorage");
+                if (uid == -1)
+                    return null;
+                _localStorage = new Storage(uid);
+            }
 
-            Invoke<int>("nkWindow.CancelAnimationFrame", requestID);
-
-            return;
+            return _localStorage;
         }
+    }
 
-        [JSInvokable]
-        public static void JsWindowOnTimeout(int uid, int callbackId)
-        {
-            Window wnd = WindowFromUid(uid);
-            wnd.OnTimeout(callbackId);
-        }
+    private Window(int uid) : base(uid)
+    {
+        Invoke("nkWindow.RegisterEvents");
+    }
 
-        private void OnTimeout(int callbackId)
-        {
-            TimeoutCallback timeoutCallback = _timeoutCallbacks[callbackId];
-            _timeoutCallbacks.Remove(callbackId);
-            _timeoutHandles.Remove(callbackId);
+    private static Window WindowFromUid(int uid)
+    {
+        if (_current.Uid != uid)
+            throw new InvalidOperationException("Invalid uid");
+        return _current;
+    }
 
-            timeoutCallback();
-        }
+    [JSExport]
+    public static void JsWindowOnAnimationFrame(int uid, int callbackId, double time)
+    {
+        Window wnd = WindowFromUid(uid);
+        wnd.OnAnimationFrame(callbackId, TimeSpan.FromMilliseconds(time));
+    }
 
-        public int SetTimeout(TimeoutCallback timeoutCallback)
-        {
-            unchecked { _timeoutCallbackId++; }
-            int callbackId = _timeoutCallbackId;
+    private void OnAnimationFrame(int callbackId, TimeSpan time)
+    {
+        AnimationFrameCallback animationFrameCallback = _animationFrameCallbacks[callbackId];
+        _animationFrameCallbacks.Remove(callbackId);
+        _animationFrameRequestHandles.Remove(callbackId);
 
-            int handle = InvokeRetInt<int, int>("nkWindow.SetTimeout", callbackId, 0);
+        animationFrameCallback(time);
+    }
 
-            _timeoutCallbacks.Add(callbackId, timeoutCallback);
-            _timeoutHandles.Add(callbackId, handle);
+    public int RequestAnimationFrame(AnimationFrameCallback animationFrameCallback)
+    {
+        unchecked { _animationFrameCallbackId++; }
+        int callbackId = _animationFrameCallbackId;
 
-            return callbackId;
-        }
+        int handle = InvokeRetInt<int>("nkWindow.RequestAnimationFrame", callbackId);
 
-        public int SetTimeout(TimeoutCallback timeoutCallback, TimeSpan delay)
-        {
-            unchecked { _timeoutCallbackId++; }
-            int callbackId = _timeoutCallbackId;
+        _animationFrameCallbacks.Add(callbackId, animationFrameCallback);
+        _animationFrameRequestHandles.Add(callbackId, handle);
 
-            int handle = InvokeRetInt<int, int>("nkWindow.SetTimeout", callbackId, (int)delay.TotalMilliseconds);
+        return callbackId;
+    }
 
-            _timeoutCallbacks.Add(callbackId, timeoutCallback);
-            _timeoutHandles.Add(callbackId, handle);
+    public void CancelAnimationFrame(int requestID)
+    {
+        int callbackId = requestID;
+        requestID = _animationFrameRequestHandles[callbackId];
 
-            return callbackId;
-        }
+        _animationFrameCallbacks.Remove(callbackId);
+        _animationFrameRequestHandles.Remove(callbackId);
 
-        public void ClearTimeout(int timeoutID)
-        {
-            int callbackId = timeoutID;
-            timeoutID = _timeoutHandles[callbackId];
+        Invoke<int>("nkWindow.CancelAnimationFrame", requestID);
 
-            _timeoutCallbacks.Remove(callbackId);
-            _timeoutHandles.Remove(callbackId);
+        return;
+    }
 
-            Invoke<int>("nkWindow.ClearTimeout", timeoutID);
-        }
+    [JSExport]
+    public static void JsWindowOnTimeout(int uid, int callbackId)
+    {
+        Window wnd = WindowFromUid(uid);
+        wnd.OnTimeout(callbackId);
+    }
 
-        [JSInvokable]
-        public static void JsWindowOnInterval(int uid, int intervalId)
-        {
-            Window wnd = WindowFromUid(uid);
-            wnd.OnInterval(intervalId);
-        }
+    private void OnTimeout(int callbackId)
+    {
+        TimeoutCallback timeoutCallback = _timeoutCallbacks[callbackId];
+        _timeoutCallbacks.Remove(callbackId);
+        _timeoutHandles.Remove(callbackId);
 
-        private void OnInterval(int intervalId)
-        {
-            IntervalCallback intervalCallback = _intervalCallbacks[intervalId];
+        timeoutCallback();
+    }
 
-            intervalCallback();
-        }
+    public int SetTimeout(TimeoutCallback timeoutCallback)
+    {
+        unchecked { _timeoutCallbackId++; }
+        int callbackId = _timeoutCallbackId;
 
-        public int SetInterval(IntervalCallback intervalCallback)
-        {
-            unchecked { _intervalCallbackId++; }
-            int intervalId = _intervalCallbackId;
+        int handle = InvokeRetInt<int, int>("nkWindow.SetTimeout", callbackId, 0);
 
-            int handle = InvokeRetInt<int, int>("nkWindow.SetInterval", intervalId, 0);
+        _timeoutCallbacks.Add(callbackId, timeoutCallback);
+        _timeoutHandles.Add(callbackId, handle);
 
-            _intervalCallbacks.Add(intervalId, intervalCallback);
-            _intervalHandles.Add(intervalId, handle);
+        return callbackId;
+    }
 
-            return intervalId;
-        }
+    public int SetTimeout(TimeoutCallback timeoutCallback, TimeSpan delay)
+    {
+        unchecked { _timeoutCallbackId++; }
+        int callbackId = _timeoutCallbackId;
 
-        public int SetInterval(IntervalCallback intervalCallback, TimeSpan delay)
-        {
-            unchecked { _intervalCallbackId++; }
-            int intervalId = _intervalCallbackId;
+        int handle = InvokeRetInt<int, int>("nkWindow.SetTimeout", callbackId, (int)delay.TotalMilliseconds);
 
-            int handle = InvokeRetInt<int, int>("nkWindow.SetInterval", intervalId, (int)delay.TotalMilliseconds);
+        _timeoutCallbacks.Add(callbackId, timeoutCallback);
+        _timeoutHandles.Add(callbackId, handle);
 
-            _intervalCallbacks.Add(intervalId, intervalCallback);
-            _intervalHandles.Add(intervalId, handle);
+        return callbackId;
+    }
 
-            return intervalId;
-        }
+    public void ClearTimeout(int timeoutID)
+    {
+        int callbackId = timeoutID;
+        timeoutID = _timeoutHandles[callbackId];
 
-        public void ClearInterval(int intervalID)
-        {
-            int callbackId = intervalID;
-            intervalID = _intervalHandles[callbackId];
+        _timeoutCallbacks.Remove(callbackId);
+        _timeoutHandles.Remove(callbackId);
 
-            _intervalCallbacks.Remove(callbackId);
-            _intervalHandles.Remove(callbackId);
+        Invoke<int>("nkWindow.ClearTimeout", timeoutID);
+    }
 
-            Invoke<int>("nkWindow.ClearInterval", intervalID);
-        }
+    [JSExport]
+    public static void JsWindowOnInterval(int uid, int intervalId)
+    {
+        Window wnd = WindowFromUid(uid);
+        wnd.OnInterval(intervalId);
+    }
 
-        [JSInvokable]
-        public static void JsWindowOnResize(int uid)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnResize;
-            if (handler != null)
-                handler(wnd);
-        }
+    private void OnInterval(int intervalId)
+    {
+        IntervalCallback intervalCallback = _intervalCallbacks[intervalId];
 
-        [JSInvokable]
-        public static void JsWindowOnFocus(int uid)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnFocus;
-            if (handler != null)
-                handler(wnd);
-        }
+        intervalCallback();
+    }
 
-        [JSInvokable]
-        public static void JsWindowOnBlur(int uid)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnBlur;
-            if (handler != null)
-                handler(wnd);
-        }
+    public int SetInterval(IntervalCallback intervalCallback)
+    {
+        unchecked { _intervalCallbackId++; }
+        int intervalId = _intervalCallbackId;
 
-        [JSInvokable]
-        public static void JsWindowOnMouseMove(int uid, int x, int y)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnMouseMove;
-            if (handler != null)
-                handler(wnd, x, y);
-        }
+        int handle = InvokeRetInt<int, int>("nkWindow.SetInterval", intervalId, 0);
 
-        [JSInvokable]
-        public static void JsWindowOnMouseDown(int uid, int x, int y, int buttons)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnMouseDown;
-            if (handler != null)
-                handler(wnd, x, y, buttons);
-        }
+        _intervalCallbacks.Add(intervalId, intervalCallback);
+        _intervalHandles.Add(intervalId, handle);
 
-        [JSInvokable]
-        public static void JsWindowOnMouseUp(int uid, int x, int y, int buttons)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnMouseUp;
-            if (handler != null)
-                handler(wnd, x, y, buttons);
-        }
+        return intervalId;
+    }
 
-        [JSInvokable]
-        public static void JsWindowOnMouseWheel(int uid, float deltaX, float deltaY, float deltaZ, int deltaMode)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnMouseWheel;
-            if (handler != null)
-                handler(wnd, (int)deltaX, (int)deltaY, (int)deltaZ, deltaMode);
-        }
+    public int SetInterval(IntervalCallback intervalCallback, TimeSpan delay)
+    {
+        unchecked { _intervalCallbackId++; }
+        int intervalId = _intervalCallbackId;
 
-        [JSInvokable]
-        public static void JsWindowOnTouchStart(int uid, float x, float y, int identifier)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnTouchStart;
-            if (handler != null)
-                handler(wnd, x, y, identifier);
-        }
+        int handle = InvokeRetInt<int, int>("nkWindow.SetInterval", intervalId, (int)delay.TotalMilliseconds);
 
-        [JSInvokable]
-        public static void JsWindowOnTouchMove(int uid, float x, float y, int identifier)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnTouchMove;
-            if (handler != null)
-                handler(wnd, x, y, identifier);
-        }
+        _intervalCallbacks.Add(intervalId, intervalCallback);
+        _intervalHandles.Add(intervalId, handle);
 
-        [JSInvokable]
-        public static void JsWindowOnTouchEnd(int uid, float x, float y, int identifier)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnTouchEnd;
-            if (handler != null)
-                handler(wnd, x, y, identifier);
-        }
+        return intervalId;
+    }
 
-        [JSInvokable]
-        public static void JsWindowOnTouchCancel(int uid)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnTouchCancel;
-            if (handler != null)
-                handler(wnd);
-        }
+    public void ClearInterval(int intervalID)
+    {
+        int callbackId = intervalID;
+        intervalID = _intervalHandles[callbackId];
 
-        [JSInvokable]
-        public static void JsWindowOnKeyDown(int uid, int key, int keyCode, int location)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnKeyDown;
-            if (handler != null)
-                handler(wnd, (char)key, keyCode, location);
-        }
+        _intervalCallbacks.Remove(callbackId);
+        _intervalHandles.Remove(callbackId);
 
-        [JSInvokable]
-        public static void JsWindowOnKeyUp(int uid, int key, int keyCode, int location)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnKeyUp;
-            if (handler != null)
-                handler(wnd, (char)key, keyCode, location);
-        }
+        Invoke<int>("nkWindow.ClearInterval", intervalID);
+    }
 
-        [JSInvokable]
-        public static void JsWindowGamepadConnected(int uid, int index)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnGamepadConnected;
-            if (handler != null)
-                handler(wnd, index);
-        }
+    [JSExport]
+    public static void JsWindowOnResize(int uid)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnResize;
+        if (handler != null)
+            handler(wnd);
+    }
 
-        [JSInvokable]
-        public static void JsWindowGamepadDisconnected(int uid, int index)
-        {
-            Window wnd = WindowFromUid(uid);
-            var handler = wnd.OnGamepadDisconnected;
-            if (handler != null)
-                handler(wnd, index);
-        }
+    [JSExport]
+    public static void JsWindowOnFocus(int uid)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnFocus;
+        if (handler != null)
+            handler(wnd);
+    }
+
+    [JSExport]
+    public static void JsWindowOnBlur(int uid)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnBlur;
+        if (handler != null)
+            handler(wnd);
+    }
+
+    [JSExport]
+    public static void JsWindowOnMouseMove(int uid, int x, int y)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnMouseMove;
+        if (handler != null)
+            handler(wnd, x, y);
+    }
+
+    [JSExport]
+    public static void JsWindowOnMouseDown(int uid, int x, int y, int buttons)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnMouseDown;
+        if (handler != null)
+            handler(wnd, x, y, buttons);
+    }
+
+    [JSExport]
+    public static void JsWindowOnMouseUp(int uid, int x, int y, int buttons)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnMouseUp;
+        if (handler != null)
+            handler(wnd, x, y, buttons);
+    }
+
+    [JSExport]
+    public static void JsWindowOnMouseWheel(int uid, float deltaX, float deltaY, float deltaZ, int deltaMode)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnMouseWheel;
+        if (handler != null)
+            handler(wnd, (int)deltaX, (int)deltaY, (int)deltaZ, deltaMode);
+    }
+
+    [JSExport]
+    public static void JsWindowOnTouchStart(int uid, float x, float y, int identifier)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnTouchStart;
+        if (handler != null)
+            handler(wnd, x, y, identifier);
+    }
+
+    [JSExport]
+    public static void JsWindowOnTouchMove(int uid, float x, float y, int identifier)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnTouchMove;
+        if (handler != null)
+            handler(wnd, x, y, identifier);
+    }
+
+    [JSExport]
+    public static void JsWindowOnTouchEnd(int uid, float x, float y, int identifier)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnTouchEnd;
+        if (handler != null)
+            handler(wnd, x, y, identifier);
+    }
+
+    [JSExport]
+    public static void JsWindowOnTouchCancel(int uid)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnTouchCancel;
+        if (handler != null)
+            handler(wnd);
+    }
+
+    [JSExport]
+    public static void JsWindowOnKeyDown(int uid, int key, int keyCode, int location)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnKeyDown;
+        if (handler != null)
+            handler(wnd, (char)key, keyCode, location);
+    }
+
+    [JSExport]
+    public static void JsWindowOnKeyUp(int uid, int key, int keyCode, int location)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnKeyUp;
+        if (handler != null)
+            handler(wnd, (char)key, keyCode, location);
+    }
+
+    [JSExport]
+    public static void JsWindowGamepadConnected(int uid, int index)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnGamepadConnected;
+        if (handler != null)
+            handler(wnd, index);
+    }
+
+    [JSExport]
+    public static void JsWindowGamepadDisconnected(int uid, int index)
+    {
+        Window wnd = WindowFromUid(uid);
+        var handler = wnd.OnGamepadDisconnected;
+        if (handler != null)
+            handler(wnd, index);
     }
 }

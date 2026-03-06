@@ -1,11 +1,10 @@
-using System;
-using System.Collections.Generic;
-using Microsoft.JSInterop;
 using nkast.Wasm.Dom;
+using System;
+using System.Runtime.InteropServices.JavaScript;
 
 namespace nkast.Wasm.Canvas
 {
-    public class Canvas : HTMLElement<Canvas>
+    public partial class Canvas : HTMLElement<Canvas>
     {
 
         public event EventHandler WebGLContextLost;
@@ -13,7 +12,7 @@ namespace nkast.Wasm.Canvas
 
         //get or set the width of the canvas
         public int Width
-        { 
+        {
             get { return InvokeRetInt("nkCanvas.GetWidth"); }
             set { Invoke("nkCanvas.SetWidth", value); }
         }
@@ -35,7 +34,7 @@ namespace nkast.Wasm.Canvas
             Invoke("nkCanvas.RegisterEvents");
         }
 
-        [JSInvokable] 
+        [JSExport]
         public static void JsCanvasOnWebGLContextLost(int uid)
         {
             Canvas canvas = Canvas.FromUid(uid);
@@ -47,7 +46,7 @@ namespace nkast.Wasm.Canvas
                 handler(canvas, EventArgs.Empty);
         }
 
-        [JSInvokable]
+        [JSExport]
         public static void JsCanvasOnWebGLContextRestored(int uid)
         {
             Canvas canvas = Canvas.FromUid(uid);
@@ -83,7 +82,7 @@ namespace nkast.Wasm.Canvas
                 //TODO: implement a Disposed event in IRenderingContext
                 if (_webglRenderingContext != null && _webglRenderingContext.IsDisposed)
                     _webglRenderingContext = null;
-                
+
                 if (_webglRenderingContext != null)
                     return (TContext)(WebGL.IWebGLRenderingContext)_webglRenderingContext;
 
@@ -129,16 +128,16 @@ namespace nkast.Wasm.Canvas
                     return (TContext)(IRenderingContext)_canvasRenderingContext;
 
                 if (attributes.Depth != null
-                ||  attributes.Stencil != null
-                ||  attributes.Antialias != null
-                ||  attributes.PowerPreference != null
-                ||  attributes.PremultipliedAlpha != null
-                ||  attributes.PreserveDrawingBuffer != null
-                ||  attributes.XrCompatible != null)
+                || attributes.Stencil != null
+                || attributes.Antialias != null
+                || attributes.PowerPreference != null
+                || attributes.PremultipliedAlpha != null
+                || attributes.PreserveDrawingBuffer != null
+                || attributes.XrCompatible != null)
                     throw new ArgumentException("attributes are not valid for 2d canvas context.", nameof(attributes));
 
                 int uid = InvokeRetInt<int>("nkCanvas.Create2DContext1", attributes.ToBit());
-                
+
                 _canvasRenderingContext = new CanvasRenderingContext(this, uid);
 
                 return (TContext)(IRenderingContext)_canvasRenderingContext;

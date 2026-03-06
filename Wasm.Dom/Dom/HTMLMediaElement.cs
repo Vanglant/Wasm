@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using Microsoft.JSInterop;
+using System.Runtime.InteropServices.JavaScript;
 
 namespace nkast.Wasm.Dom
 {
-    public abstract class HTMLMediaElement : HTMLElement<HTMLMediaElement>, IHTMLMediaElement
+    public abstract partial class HTMLMediaElement : HTMLElement<HTMLMediaElement>, IHTMLMediaElement
     {
 
         public event EventHandler OnEnded;
@@ -65,7 +64,7 @@ namespace nkast.Wasm.Dom
         }
 
 
-        [JSInvokable]
+        [JSExport]
         public static void JsMediaOnEnded(int uid)
         {
             HTMLMediaElement mediaElement = HTMLMediaElement.FromUid(uid);
@@ -77,7 +76,7 @@ namespace nkast.Wasm.Dom
                 handler(mediaElement, EventArgs.Empty);
         }
 
-        [JSInvokable]
+        [JSExport]
         public static void JsMediaOnPlaying(int uid)
         {
             HTMLMediaElement mediaElement = HTMLMediaElement.FromUid(uid);
@@ -89,7 +88,7 @@ namespace nkast.Wasm.Dom
                 handler(mediaElement, EventArgs.Empty);
         }
 
-        [JSInvokable]
+        [JSExport]
         public static void JsMediaOnOnTimeUpdate(int uid)
         {
             HTMLMediaElement mediaElement = HTMLMediaElement.FromUid(uid);
@@ -112,7 +111,7 @@ namespace nkast.Wasm.Dom
             {
                 Invoke("nkMedia.Play");
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 //throw;
             }

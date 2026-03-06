@@ -1,12 +1,12 @@
-using System;
-using System.Collections.Generic;
-using Microsoft.JSInterop;
 using nkast.Wasm.JSInterop;
+using System;
+using System.Runtime.InteropServices.JavaScript;
+using JSObject = nkast.Wasm.JSInterop.JSObject;
 
 namespace nkast.Wasm.XHR
 {
-    public class XMLHttpRequest : CachedJSObject<XMLHttpRequest>
-    { 
+    public partial class XMLHttpRequest : CachedJSObject<XMLHttpRequest>
+    {
 
         public event EventHandler Load;
         public event EventHandler Error;
@@ -22,7 +22,7 @@ namespace nkast.Wasm.XHR
             return uid;
         }
 
-        [JSInvokable]
+        [JSExport]
         public static void JsXMLHttpRequestOnLoad(int uid)
         {
             XMLHttpRequest xmlHttpRequest = XMLHttpRequest.FromUid(uid);
@@ -34,7 +34,7 @@ namespace nkast.Wasm.XHR
                 handler(xmlHttpRequest, EventArgs.Empty);
         }
 
-        [JSInvokable]
+        [JSExport]
         public static void JsXMLHttpRequestOnError(int uid)
         {
             XMLHttpRequest xmlHttpRequest = XMLHttpRequest.FromUid(uid);
@@ -48,7 +48,7 @@ namespace nkast.Wasm.XHR
 
         public void Open(string method, string url, bool async = true)
         {
-            Invoke("nkXHR.Open", method, url, async?1:0);
+            Invoke("nkXHR.Open", method, url, async ? 1 : 0);
         }
 
         public void OverrideMimeType(string mimeType)
@@ -89,7 +89,7 @@ namespace nkast.Wasm.XHR
             get
             {
                 int readyState = InvokeRetInt("nkXHR.GetReadyState");
-                return (ReadyState) readyState;
+                return (ReadyState)readyState;
             }
         }
 

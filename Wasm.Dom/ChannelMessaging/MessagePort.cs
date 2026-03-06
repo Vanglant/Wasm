@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using Microsoft.JSInterop;
-using nkast.Wasm.JSInterop;
+﻿using nkast.Wasm.JSInterop;
+using System;
+using System.Runtime.InteropServices.JavaScript;
 
 namespace nkast.Wasm.ChannelMessaging
 {
-    public class MessagePort : CachedJSObject<MessagePort>
+    public partial class MessagePort : CachedJSObject<MessagePort>
     {
         public event EventHandler<MessageEventArgs> Message;
 
@@ -46,17 +44,17 @@ namespace nkast.Wasm.ChannelMessaging
         }
 
 
-        [JSInvokable]
+        [JSExport]
         public static void JsMessagePortOnMessagef64(int uid, double data)
         {
             MessagePort mp = MessagePort.FromUid(uid);
-            
+
             var handler = mp.Message;
             if (handler != null)
                 handler(mp, new MessageEventArgs(data));
         }
 
-        [JSInvokable]
+        [JSExport]
         public static void JsMessagePortOnMessageUInt8Array(int uid, int aid)
         {
             MessagePort mp = MessagePort.FromUid(uid);
